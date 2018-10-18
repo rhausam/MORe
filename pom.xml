@@ -35,7 +35,7 @@
       		<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.4.1</version>
+				<version>3.2.0</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -45,6 +45,86 @@
 					</execution>
 				</executions>
 				<configuration>
+					<instructions>
+						<Bundle-NativeCode>
+						 lib/native/64bit/FaCTPlusPlusJNI.dll;
+						 osname=win ;
+						 osname=WindowsNT ;
+						 osname=Windows NT ;
+						 osname=WinNT ;
+						 osname=WindowsXP ;
+						 osname=Windows XP ;
+						 osname=WinXP ;
+						 osname=WindowsVista ;
+						 osname=Windows Vista ;
+						 osname=Windows2003 ;
+						 osname=Windows2008 ;
+						 osname=Windows7 ;
+						 osname=Windows 7 ;
+						 osname=Windows8 ;
+						 osname=Windows 8 ;
+						 osname=Windows8.1 ;
+						 osname=Windows 8.1 ;
+						 processor=x86_64 ;
+						 processor = amd64 ,
+						 lib/native/32bit/FaCTPlusPlusJNI.dll;
+						 osname=win ;
+						 osname=Windows95 ;
+						 osname=Windows 95 ;
+						 osname=Win95 ;
+						 osname=Windows98 ;
+						 osname=Windows 98 ;
+						 osname=Win98 ;
+						 osname=WindowsNT ;
+						 osname=Windows NT ;
+						 osname=WinNT ;
+						 osname=WindowsCE ;
+						 osname=Winndows CE ;
+						 osname=WinCE ;
+						 osname=WindowsXP ;
+						 osname=Windows XP ;
+						 osname=WinXP ;
+						 osname=WindowsVista ;
+						 osname=Windows Vista ;
+						 osname=Windows2003 ;
+						 osname=Windows2008 ;
+						 osname=Windows7 ;
+						 osname=Windows 7 ;
+						 osname=Windows8 ;
+						 osname=Windows 8 ;
+						 osname=Windows8.1 ;
+						 osname=Windows 8.1 ;
+						 processor = i386 ;
+						 processor = x86 ,
+						 lib/native/64bit/libFaCTPlusPlusJNI.so;
+						 osname=Linux ;
+						 processor=x86_64 ;
+						 processor=amd64 ,
+						 lib/native/32bit/libFaCTPlusPlusJNI.so;
+						 osname=Linux ;
+						 processor=i386 ,
+						 lib/native/64bit/libFaCTPlusPlusJNI.jnilib;
+						 osname=MacOSX ;
+						 osname=Mac OS X ;
+						 processor=ppc64 ;
+						 processor=x86_64 ,
+						 lib/native/32bit/libFaCTPlusPlusJNI.jnilib;
+						 osname=MacOSX ;
+						 osname=Mac OS X ;
+						 processor=ppc ;
+						 processor=i386
+						 </Bundle-NativeCode>
+					</instructions>
+		              <filters>
+		                <filter>
+		                  <artifact>*:*</artifact>
+		                  <excludes>
+		                    <exclude>META-INF/*.SF</exclude>
+		                    <exclude>META-INF/*.DSA</exclude>
+		                    <exclude>META-INF/*.RSA</exclude>
+		                  </excludes>
+		                </filter>
+		              </filters>
 					<finalName>uber-${artifactId}-${version}</finalName>
 				</configuration>
 			</plugin>
@@ -54,6 +134,13 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
   	<dependencies>
+		<dependency>
+		    <groupId>uk.ac.manchester.cs.factplusplus</groupId>
+		    <artifactId>FaCTPlusPlusReasoner</artifactId>
+			<version>1.6.5</version>
+		    <scope>system</scope>
+		    <systemPath>/Users/rhausam/git-repo/MORe/src/uk/ac/manchester/cs/owl/uk.ac.manchester.cs.owl.factplusplus-P5.x-v1.6.5.jar</systemPath>
+		</dependency>
   		<dependency>
 			<groupId>net.sourceforge.owlapi</groupId>
 			<artifactId>owlapi-distribution</artifactId>

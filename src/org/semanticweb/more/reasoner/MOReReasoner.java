@@ -360,17 +360,17 @@ public class MOReReasoner implements OWLReasoner {
 			stats.updateHermiTtime(t.duration());
 			if (lSignatureManager.getLsignatureClasses().isEmpty()){
 				if (afterUsingPAGOdA)
-					status = ClassificationStatus.CLASSIFIED_BY_PAGODA_AND_HERMIT;
+					status = ClassificationStatus.CLASSIFIED_BY_PAGODA_AND_OWL2;
 				else{
-					status = ClassificationStatus.CLASSIFIED_BY_HERMIT;
+					status = ClassificationStatus.CLASSIFIED_BY_OWL2;
 					stats.updatePairsDecidedPAGOdAstyle(0);
 				}
 			}
 			else{
 				if (afterUsingPAGOdA)
-					status = ClassificationStatus.CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT;
+					status = ClassificationStatus.CLASSIFIED_BY_ELK_PAGODA_AND_OWL2;
 				else {
-					status = ClassificationStatus.CLASSIFIED_BY_ELK_AND_HERMIT;
+					status = ClassificationStatus.CLASSIFIED_BY_ELK_AND_OWL2;
 					stats.updatePairsDecidedPAGOdAstyle(0);
 				}
 			}
@@ -946,7 +946,7 @@ public class MOReReasoner implements OWLReasoner {
 			ret = lReasoner.getSuperClasses(c, false).getFlattened();
 			ret.addAll(lReasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 			return ret;
-		case CLASSIFIED_BY_HERMIT:
+		case CLASSIFIED_BY_OWL2:
 			ret = owl2reasoner.getSuperClasses(c, false).getFlattened();
 			ret.addAll(owl2reasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 			return ret; 
@@ -975,7 +975,7 @@ public class MOReReasoner implements OWLReasoner {
 				}
 				return ret;
 			}
-		case CLASSIFIED_BY_ELK_AND_HERMIT:
+		case CLASSIFIED_BY_ELK_AND_OWL2:
 			if (lSignatureManager.getLsignatureClasses().contains(c)){
 				if (lReasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
@@ -994,7 +994,7 @@ public class MOReReasoner implements OWLReasoner {
 				}
 				return ret;
 			}
-		case CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT:
+		case CLASSIFIED_BY_ELK_PAGODA_AND_OWL2:
 			if (lSignatureManager.getLsignatureClasses().contains(c)){
 				if (lReasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
@@ -1016,7 +1016,7 @@ public class MOReReasoner implements OWLReasoner {
 				}
 				return ret;
 			}
-		case CLASSIFIED_BY_PAGODA_AND_HERMIT:
+		case CLASSIFIED_BY_PAGODA_AND_OWL2:
 			ret = pagoda.getAllSuperClasses(c);
 			if (ret.size() == 1 && ret.iterator().next().isOWLNothing()){
 				ret.iterator().remove();
@@ -1046,7 +1046,7 @@ public class MOReReasoner implements OWLReasoner {
 		switch (status) {
 		case CLASSIFIED_BY_ELK:
 			return lReasoner.getUnsatisfiableClasses().getEntities();
-		case CLASSIFIED_BY_HERMIT:
+		case CLASSIFIED_BY_OWL2:
 			return owl2reasoner.getUnsatisfiableClasses().getEntities();
 		case CLASSIFIED_BY_PAGODA:
 			return pagoda.getUnsatisfiableClasses();
@@ -1054,16 +1054,16 @@ public class MOReReasoner implements OWLReasoner {
 			ret = lReasoner.getUnsatisfiableClasses().getEntities();
 			ret.addAll(pagoda.getUnsatisfiableClasses());
 			return ret;
-		case CLASSIFIED_BY_ELK_AND_HERMIT:
+		case CLASSIFIED_BY_ELK_AND_OWL2:
 			ret = lReasoner.getUnsatisfiableClasses().getEntities();
 			ret.addAll(owl2reasoner.getUnsatisfiableClasses().getEntities());
 			return ret;
-		case CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT:
+		case CLASSIFIED_BY_ELK_PAGODA_AND_OWL2:
 			ret = lReasoner.getUnsatisfiableClasses().getEntities();
 			ret.addAll(pagoda.getUnsatisfiableClasses());
 			ret.addAll(owl2reasoner.getUnsatisfiableClasses().getEntities());
 			return ret;
-		case CLASSIFIED_BY_PAGODA_AND_HERMIT:
+		case CLASSIFIED_BY_PAGODA_AND_OWL2:
 			ret = pagoda.getUnsatisfiableClasses();
 			ret.addAll(owl2reasoner.getUnsatisfiableClasses().getEntities());
 			return ret;
@@ -1368,10 +1368,10 @@ enum ClassificationStatus{
 	NOT_CLASSIFIED,
 	CLASSIFIED_BY_ELK,
 	CLASSIFIED_BY_ELK_AND_PAGODA,
-	CLASSIFIED_BY_ELK_AND_HERMIT,
-	CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT,
-	CLASSIFIED_BY_PAGODA_AND_HERMIT,
-	CLASSIFIED_BY_HERMIT,
+	CLASSIFIED_BY_ELK_AND_OWL2,
+	CLASSIFIED_BY_ELK_PAGODA_AND_OWL2,
+	CLASSIFIED_BY_PAGODA_AND_OWL2,
+	CLASSIFIED_BY_OWL2,
 	CLASSIFIED_BY_PAGODA,
 	UNFINISHED_CLASSIFICATION_TESTING
 }
