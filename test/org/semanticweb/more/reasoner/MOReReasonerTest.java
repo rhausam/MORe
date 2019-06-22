@@ -15,6 +15,7 @@ import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.InferenceType;
 
 import util.TestUtility;
@@ -40,11 +41,11 @@ public class MOReReasonerTest {
 
 				ontology = manager.loadOntology(IRI.create(iri_onto));
 				EqualityAxiomVisitor visitor = new EqualityAxiomVisitor();
-				for (OWLAxiom ax : ontology.getTBoxAxioms(true)){
+				for (OWLAxiom ax : ontology.getTBoxAxioms(Imports.INCLUDED)){
 					if (!visitor.containsEquality(ax))
 						rtBox.add(ax);
 				}
-				for (OWLAxiom ax : ontology.getRBoxAxioms(true)){
+				for (OWLAxiom ax : ontology.getRBoxAxioms(Imports.INCLUDED)){
 					if (!visitor.containsEquality(ax))
 						rtBox.add(ax);
 				}

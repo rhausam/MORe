@@ -43,6 +43,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
+import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.AxiomNotInProfileException;
 import org.semanticweb.owlapi.reasoner.BufferingMode;
 import org.semanticweb.owlapi.reasoner.ClassExpressionNotInProfileException;
@@ -161,14 +162,14 @@ public class MOReReasoner implements OWLReasoner {
 		Logger_MORe.logInfo("loading ontology");
 		clearStatus();
 		try {
-			Logger_MORe.logTrace(root_ontology.getSignature(true).size() + " entities in signature");
+			Logger_MORe.logTrace(root_ontology.getSignature().size() + " entities in signature");
 			Logger_MORe.logTrace(root_ontology.getObjectPropertiesInSignature(true).size() + " properties in signature");
 			Logger_MORe.logTrace(root_ontology.getClassesInSignature(true).size() + " classes in signature");
-			if (!root_ontology.getABoxAxioms(true).isEmpty())
+			if (!root_ontology.getABoxAxioms(Imports.INCLUDED).isEmpty())
 				Logger_MORe.logInfo("all assertional axioms in this ontology will be ignored for the purpose of classification");
 
-			Set<OWLAxiom> rtBoxAxioms = new HashSet<OWLAxiom>(root_ontology.getTBoxAxioms(true));
-			rtBoxAxioms.addAll(root_ontology.getRBoxAxioms(true));
+			Set<OWLAxiom> rtBoxAxioms = new HashSet<OWLAxiom>(root_ontology.getTBoxAxioms(Imports.INCLUDED));
+			rtBoxAxioms.addAll(root_ontology.getRBoxAxioms(Imports.INCLUDED));
 			ontology = manager.createOntology(rtBoxAxioms, IRI.create(iri_str_working_ontology));
 			
 			Logger_MORe.logTrace(ontology.getLogicalAxiomCount() + " axioms in working ontology before eliminating forgettable roles");
@@ -447,7 +448,7 @@ public class MOReReasoner implements OWLReasoner {
 			InferredOntologyGenerator iog = null;
 
 			iog = new InferredOntologyGenerator(r, gens);
-			iog.fillOntology(manager, inferredOntology);
+			iog.fillOntology(manager.getOWLDataFactory(), inferredOntology);
 
 			t = System.currentTimeMillis() - t;
 			Logger_MORe.logDebug(t + "ms for the hierarchy rewriting");

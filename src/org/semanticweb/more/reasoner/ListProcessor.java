@@ -58,7 +58,7 @@ public class ListProcessor {
 					if (!set.contains(symbol)){
 						adds ++;
 					}
-					if (symbol instanceof OWLProperty<?,?>){
+					if (symbol instanceof OWLProperty){
 						roles++;
 					}
 				}
@@ -117,7 +117,7 @@ public class ListProcessor {
 	public int countRoles(Set<OWLEntity> symbols){
 		int nRoles = 0;
 		for (OWLEntity symbol : symbols){
-			if (symbol instanceof OWLProperty<?,?>){
+			if (symbol instanceof OWLProperty){
 				nRoles++;
 			}
 		}

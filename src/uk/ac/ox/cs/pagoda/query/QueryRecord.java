@@ -30,6 +30,7 @@ import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.model.parameters.Imports;
 
 import uk.ac.ox.cs.pagoda.hermit.DLClauseHelper;
 import uk.ac.ox.cs.pagoda.rules.GeneralProgram;
@@ -354,7 +355,7 @@ public class QueryRecord {
 			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename)));
 			OWLIndividual a, b;
 			StringBuilder builder = new StringBuilder(); 
-			for (OWLAxiom axiom: relevantOntology.getABoxAxioms(true)) {
+			for (OWLAxiom axiom: relevantOntology.getABoxAxioms(Imports.INCLUDED)) {
 				if (axiom instanceof OWLClassAssertionAxiom) {
 					OWLClassAssertionAxiom classAssertion = (OWLClassAssertionAxiom) axiom; 
 					OWLClass c = (OWLClass) classAssertion.getClassExpression(); 

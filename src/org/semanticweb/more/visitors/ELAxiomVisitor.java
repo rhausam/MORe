@@ -152,7 +152,7 @@ public class ELAxiomVisitor implements OWLFragmentVisitor {
 	
 	public void visit(OWLHasKeyAxiom axiom) {
 		isEL = true;
-		for (OWLPropertyExpression<?,?> prop : axiom.getPropertyExpressions()){
+		for (OWLPropertyExpression prop : axiom.getPropertyExpressions()){
 			isEL = isEL && !(prop.isAnonymous());
 		}
 		if (isEL){
