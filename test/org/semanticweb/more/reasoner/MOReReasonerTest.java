@@ -54,7 +54,7 @@ public class MOReReasonerTest {
 
 				Logger_MORe.logDebug("\nLoaded ontology: " + iri_onto);
 
-				Reasoner hermit = new Reasoner(ontology);
+				Reasoner hermit = new Reasoner(null, ontology);
 				hermit.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 
 				MOReReasonerConfiguration[] configs = new MOReReasonerConfiguration[]{

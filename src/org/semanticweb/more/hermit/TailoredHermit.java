@@ -19,7 +19,7 @@ public class TailoredHermit extends Reasoner {
 
 
 	public TailoredHermit(OWLOntology rootOntology) {
-		super(rootOntology);
+		super(null, rootOntology);
 	}
 
 

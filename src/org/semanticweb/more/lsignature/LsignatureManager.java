@@ -50,7 +50,7 @@ public class LsignatureManager {
 	public OWLOntology findLsignature(OWLOntology ontology, LogicFragment fragment, Statistics stats) {
 		Timer t = new Timer();
 		this.stats = stats;
-		Logger_MORe.logInfo("extracting " + fragment.toString() + "-signature");
+		Logger_MORe.logInfo("extracting " + fragment.toString() + " signature " + stats.getLsignatureSize() + " axioms");
 		OWLOntology ret = null;
 		OWLOntologyManager manager = ontology.getOWLOntologyManager();
 		try{
@@ -249,7 +249,7 @@ public class LsignatureManager {
 			lSigExtractor.findLsignature(ontology, fragment);
 			if (!integrateRangesFirst)
 				stats.updateNelkAxioms(lSigExtractor.nAxiomsInFragment());
-			Logger_MORe.logDebug(t.duration() + "s to find Lsignature with integrateRangesFirst=" + integrateRangesFirst);
+			Logger_MORe.logDebug(t.duration() + "s to find Lsignature for " + fragment + " fragment with integrateRangesFirst=" + integrateRangesFirst);
 			return true;
 		}
 

@@ -7,8 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.semanticweb.HermiT.structural.OWLAxioms;
-import org.semanticweb.HermiT.structural.OWLNormalization;
+//import org.semanticweb.HermiT.structural.OWLAxioms;
+//import org.semanticweb.HermiT.structural.OWLNormalization;
 import org.semanticweb.more.structural.inverseRewriting.SortedGCI;
 import org.semanticweb.more.util.Logger_MORe;
 import org.semanticweb.owlapi.model.IRI;

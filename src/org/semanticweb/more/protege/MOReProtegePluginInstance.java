@@ -1,6 +1,7 @@
 package org.semanticweb.more.protege;
 
 import org.protege.editor.owl.model.inference.AbstractProtegeOWLReasonerInfo;
+import org.protege.editor.core.plugin.ProtegePluginInstance;
 import org.semanticweb.more.reasoner.MOReReasonerConfiguration;
 import org.semanticweb.more.reasoner.MOReReasonerFactory;
 import org.semanticweb.owlapi.reasoner.BufferingMode;
@@ -21,7 +22,7 @@ import org.semanticweb.owlapi.reasoner.SimpleConfiguration;
  * @author Ana Armas
  *
  */
-public class MOReProtegePluginInstance extends AbstractProtegeOWLReasonerInfo {
+public class MOReProtegePluginInstance extends AbstractProtegeOWLReasonerInfo implements ProtegePluginInstance {
 	
 	protected final OWLReasonerFactory factory = new MOReReasonerFactory();
 

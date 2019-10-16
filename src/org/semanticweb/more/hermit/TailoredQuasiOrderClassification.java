@@ -58,7 +58,7 @@ public class TailoredQuasiOrderClassification extends QuasiOrderClassification{
 		long t = System.currentTimeMillis();
 		////
 		
-		//this method builds a model for every node representant in the explicit hierarchy obtained in initialiseKnownSubsumptionsUsingLowerBoundProvided(); 
+		//this method builds a model for every node represented in the explicit hierarchy obtained in initialiseKnownSubsumptionsUsingLowerBoundProvided(); 
 		double tasksPerformed = updateSubsumptionsUsingLeafNodeStrategy(totalNumberOfTasks); 
 		
 		////

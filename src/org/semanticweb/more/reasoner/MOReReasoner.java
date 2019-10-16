@@ -58,6 +58,7 @@ import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.ReasonerInterruptedException;
 import org.semanticweb.owlapi.reasoner.TimeOutException;
 import org.semanticweb.owlapi.reasoner.UnsupportedEntailmentTypeException;
+import org.semanticweb.owlapi.reasoner.impl.OWLClassNodeSet;
 import org.semanticweb.owlapi.util.InferredAxiomGenerator;
 import org.semanticweb.owlapi.util.InferredEquivalentClassAxiomGenerator;
 import org.semanticweb.owlapi.util.InferredOntologyGenerator;
@@ -1117,6 +1118,7 @@ public class MOReReasoner implements OWLReasoner {
 		return null;
 	}
 
+	/*
 	@Override
 	public NodeSet<OWLClass> getSubClasses(OWLClassExpression arg0, boolean direct)
 			throws ReasonerInterruptedException, TimeOutException,
@@ -1131,7 +1133,41 @@ public class MOReReasoner implements OWLReasoner {
 		}
 		return null;
 	}
+	*/
 
+	@Override
+	public NodeSet<OWLClass> getSubClasses(OWLClassExpression arg0, boolean direct)
+			throws ReasonerInterruptedException, TimeOutException,
+			FreshEntitiesException, InconsistentOntologyException,
+			ClassExpressionNotInProfileException {
+		classifyClasses();
+		switch (status) {
+		case NOT_CLASSIFIED:
+			Logger_MORe.logInfo("Classification not computed yet: subclasses unkown");
+			return new OWLClassNodeSet();
+		case CLASSIFIED_BY_ELK:
+			return lReasoner.getSubClasses(arg0, direct);
+		case CLASSIFIED_BY_ELK_AND_PAGODA:
+			return new OWLClassNodeSet();				
+		case CLASSIFIED_BY_ELK_AND_OWL2:
+			return new OWLClassNodeSet();
+		case CLASSIFIED_BY_ELK_PAGODA_AND_OWL2:
+			return new OWLClassNodeSet();
+		case CLASSIFIED_BY_PAGODA_AND_OWL2:
+			return new OWLClassNodeSet();
+		case CLASSIFIED_BY_OWL2:
+			return owl2reasoner.getSubClasses(arg0, direct);
+		case CLASSIFIED_BY_PAGODA:
+			return new OWLClassNodeSet();				
+		case UNFINISHED_CLASSIFICATION_TESTING:
+			Logger_MORe.logInfo("Classification unfinished: subclasses unkown");
+			return new OWLClassNodeSet();				
+		default:
+			Logger_MORe.logInfo("No classification status specified!");
+			return new OWLClassNodeSet();
+		}
+	}
+	
 	@Override
 	public NodeSet<OWLDataProperty> getSubDataProperties(OWLDataProperty direct,
 			boolean arg1) throws InconsistentOntologyException,
@@ -1252,6 +1288,7 @@ public class MOReReasoner implements OWLReasoner {
 	}
 
 	@Override
+	/*
 	public boolean isConsistent() throws ReasonerInterruptedException,
 	TimeOutException {
 		//TODO
@@ -1262,6 +1299,59 @@ public class MOReReasoner implements OWLReasoner {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	*/
+	
+	public boolean isConsistent() throws ReasonerInterruptedException, TimeOutException {
+		classifyClasses();
+		switch (status) {
+		case NOT_CLASSIFIED:
+			Logger_MORe.logInfo("Classification not computed yet: isConsistent");
+			return true;
+		case CLASSIFIED_BY_ELK:
+			return lReasoner.isConsistent();
+		case CLASSIFIED_BY_ELK_AND_PAGODA:
+			if (lReasoner.isConsistent()) {
+				Logger_MORe.logInfo("Ontology presumably is inconsistent (unable to deterimine with PAGOdA.)");
+				return true;				
+			}
+			else {
+				Logger_MORe.logInfo("Ontology is inconsistent!");
+				return false;
+			}
+		case CLASSIFIED_BY_ELK_AND_OWL2:
+			return lReasoner.isConsistent() && owl2reasoner.isConsistent();
+		case CLASSIFIED_BY_ELK_PAGODA_AND_OWL2:
+			if (lReasoner.isConsistent() && owl2reasoner.isConsistent()) {
+				Logger_MORe.logInfo("Ontology presumably is consistent - unable to deterimine PAGOdA component.");
+				return true;				
+			}
+			else {
+				Logger_MORe.logInfo("Ontology is inconsistent!");
+				return false;
+			}
+		case CLASSIFIED_BY_PAGODA_AND_OWL2:
+			if (owl2reasoner.isConsistent()) {
+				Logger_MORe.logInfo("Ontology presumably is consistent - unable to deterimine PAGOdA component.");
+				return true;				
+			}
+			else {
+				Logger_MORe.logInfo("Ontology is inconsistent!");
+				return false;
+			}
+		case CLASSIFIED_BY_OWL2:
+			return owl2reasoner.isConsistent();
+			// Logger_MORe.logInfo("HermiT: " + hermiT); //TODO (change to OWL2?)
+		case CLASSIFIED_BY_PAGODA:
+			Logger_MORe.logInfo("Ontology presumably is consistent - unable to deterimine with PAGOdA.");
+			return true;				
+		case UNFINISHED_CLASSIFICATION_TESTING:
+			Logger_MORe.logInfo("Classification unfinished - unknown if consistent!");
+			return true;				
+		default:
+			Logger_MORe.logInfo("No classification status specified!");
+			return false;
+		}
 	}
 
 	@Override

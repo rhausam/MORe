@@ -90,7 +90,7 @@ public class MOReReasonerFactory implements OWLReasonerFactory {
 		
 	@Override
 	public String getReasonerName() {
-		return "MORe_v0.2.0";
+		return "MORe_v0.2.1-rh";
 	}
 
 }

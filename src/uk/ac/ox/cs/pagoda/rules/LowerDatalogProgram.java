@@ -112,7 +112,7 @@ class ClassifyThread extends Thread {
 	public void run() {
 		ontology = m_program.getOntology();
 		try {
-			hermitReasoner = new Reasoner(ontology);
+			hermitReasoner = new Reasoner(null, ontology);
 			Timer t = new Timer(); 
 			hermitReasoner.classifyClasses();
 			Logger_MORe.logInfo("HermiT classification done: " + t.duration());
