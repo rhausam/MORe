@@ -36,7 +36,9 @@ public class MOReProtegePluginInstance extends AbstractProtegeOWLReasonerInfo {
 	}
 
 	@Override
-	public void initialise() throws Exception { }
+	public void initialise() throws Exception { 
+		
+	}
 
 	@Override
 	public void dispose() throws Exception { }

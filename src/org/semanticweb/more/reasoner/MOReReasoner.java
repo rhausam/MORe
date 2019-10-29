@@ -62,6 +62,8 @@ import org.semanticweb.owlapi.util.InferredEquivalentClassAxiomGenerator;
 import org.semanticweb.owlapi.util.InferredOntologyGenerator;
 import org.semanticweb.owlapi.util.InferredSubClassAxiomGenerator;
 import org.semanticweb.owlapi.util.Version;
+import org.semanticweb.owlapi.model.parameters.Imports;
+import org.semanticweb.owlapi.reasoner.impl.OWLClassNodeSet;
 
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
@@ -82,8 +84,8 @@ public class MOReReasoner implements OWLReasoner {
 	protected OWLOntologyManager manager;
 
 	/**
-	 * We need to keep them to remove them from reasoner before reclassifying
-	 * This can be avoided if incremental functionalities are implemented
+	 * We need to keep them to remove them from reasoner before reclassifying This
+	 * can be avoided if incremental functionalities are implemented
 	 **/
 	protected OWLOntology lmodule_onto;
 	protected OWLOntology compmodule_onto;
@@ -100,30 +102,29 @@ public class MOReReasoner implements OWLReasoner {
 	protected OWLReasoner owl2reasoner;
 	protected OWLReasoner lReasoner;
 	protected PAGOdAClassificationManager pagoda;
-	protected LogicFragment lightweightFragment = LogicFragment.ELK; 
+	protected LogicFragment lightweightFragment = LogicFragment.ELK;
 
 	protected MOReReasonerConfiguration configuration;
 	protected Statistics stats;
 	protected boolean isMonitorUp;
-	protected boolean anyChanceOfUnsatisfiability = true;//true by default
+	protected boolean anyChanceOfUnsatisfiability = true;// true by default
 	protected boolean isBuffered = true;
 
 	protected ClassificationStatus status = ClassificationStatus.NOT_CLASSIFIED;
 
-
 	public MOReReasoner(OWLOntology ontlgy, MOReReasonerConfiguration config) {
 		this.configuration = config;
 
-		this.manager = ontlgy.getOWLOntologyManager();//OWLManager.createOWLOntologyManager();
+		this.manager = ontlgy.getOWLOntologyManager();// OWLManager.createOWLOntologyManager();
 		this.root_ontology = ontlgy;
 		this.root_ontologyChangeListener = new OntologyChangeListener();
 		root_ontology.getOWLOntologyManager().addOntologyChangeListener(root_ontologyChangeListener);
 		this.pendingChanges_root_ontology = new ArrayList<OWLOntologyChange>();
 
-		this.lSignatureManager= new LsignatureManager(configuration.integrateRanges, configuration.rewriteInverses); 
+		this.lSignatureManager = new LsignatureManager(configuration.integrateRanges, configuration.rewriteInverses);
 
-		stats = new Statistics(ontlgy, config.integrateRanges || config.rewriteInverses, config.useRDFox);	
-		
+		stats = new Statistics(ontlgy, config.integrateRanges || config.rewriteInverses, config.useRDFox);
+
 		this.isMonitorUp = (configuration != null && configuration.getProgressMonitor() != null);
 
 		loadOntology();
@@ -132,68 +133,68 @@ public class MOReReasoner implements OWLReasoner {
 	public MOReReasoner(OWLOntology ontlgy) {
 		this(ontlgy, new MOReReasonerConfiguration());
 	}
-	
-	//called from factory
-	protected MOReReasoner(OWLOntology ontlgy, boolean isBuffered, MOReReasonerConfiguration config, OWL2ReasonerManager owl2ReasonerManager) {
-		this(ontlgy,config);
+
+	// called from factory
+	protected MOReReasoner(OWLOntology ontlgy, boolean isBuffered, MOReReasonerConfiguration config,
+			OWL2ReasonerManager owl2ReasonerManager) {
+		this(ontlgy, config);
 		this.isBuffered = isBuffered;
 		this.owl2reasonerManager = owl2ReasonerManager;
 	}
 
-	protected MOReReasoner(OWLOntology ontlgy, boolean isBuffered,
-			MOReReasonerConfiguration config) {
+	protected MOReReasoner(OWLOntology ontlgy, boolean isBuffered, MOReReasonerConfiguration config) {
 		this(ontlgy, config);
 	}
-	
-	
 
 	@Override
 	public Version getReasonerVersion() {
-		return new Version(0, 0, 2, 0);//2.0 will be the first MORe integrated with PAGOdA
+		return new Version(0, 0, 2, 0);// 2.0 will be the first MORe integrated with PAGOdA
 	}
 
 	public String getReasonerVersionStr() {
-		return getReasonerVersion().getMajor() + "." + getReasonerVersion().getMinor() + "." + getReasonerVersion().getPatch();
+		return getReasonerVersion().getMajor() + "." + getReasonerVersion().getMinor() + "."
+				+ getReasonerVersion().getPatch();
 	}
-
 
 	protected void loadOntology() {
 		Logger_MORe.logInfo("loading ontology");
 		clearStatus();
 		try {
-			Logger_MORe.logTrace(root_ontology.getSignature(true).size() + " entities in signature");
-			Logger_MORe.logTrace(root_ontology.getObjectPropertiesInSignature(true).size() + " properties in signature");
+			Logger_MORe.logTrace(root_ontology.getSignature().size() + " entities in signature");
+			Logger_MORe
+					.logTrace(root_ontology.getObjectPropertiesInSignature(true).size() + " properties in signature");
 			Logger_MORe.logTrace(root_ontology.getClassesInSignature(true).size() + " classes in signature");
-			if (!root_ontology.getABoxAxioms(true).isEmpty())
-				Logger_MORe.logInfo("all assertional axioms in this ontology will be ignored for the purpose of classification");
+			if (!root_ontology.getABoxAxioms(Imports.INCLUDED).isEmpty())
+				Logger_MORe.logInfo(
+						"all assertional axioms in this ontology will be ignored for the purpose of classification");
 
-			Set<OWLAxiom> rtBoxAxioms = new HashSet<OWLAxiom>(root_ontology.getTBoxAxioms(true));
-			rtBoxAxioms.addAll(root_ontology.getRBoxAxioms(true));
+			Set<OWLAxiom> rtBoxAxioms = new HashSet<OWLAxiom>(root_ontology.getTBoxAxioms(Imports.INCLUDED));
+			rtBoxAxioms.addAll(root_ontology.getRBoxAxioms(Imports.INCLUDED));
 			ontology = manager.createOntology(rtBoxAxioms, IRI.create(iri_str_working_ontology));
-			
-			Logger_MORe.logTrace(ontology.getLogicalAxiomCount() + " axioms in working ontology before eliminating forgettable roles");
-			
-			if (configuration.eliminateForgettableRoles){
+
+			Logger_MORe.logTrace(ontology.getLogicalAxiomCount()
+					+ " axioms in working ontology before eliminating forgettable roles");
+
+			if (configuration.eliminateForgettableRoles) {
 				ForgettableRoles rewriter = new ForgettableRoles();
 				anyChanceOfUnsatisfiability = false;
 				Collection<OWLAxiom> rewrittenAxioms = rewriter.rewrite(ontology);
-				if (rewrittenAxioms != null){
+				if (rewrittenAxioms != null) {
 					manager.removeOntology(ontology);
-					ontology = manager.createOntology(new HashSet<OWLAxiom>(rewrittenAxioms), IRI.create(iri_str_working_ontology));
-				}
-				else
-					anyChanceOfUnsatisfiability = true;				
+					ontology = manager.createOntology(new HashSet<OWLAxiom>(rewrittenAxioms),
+							IRI.create(iri_str_working_ontology));
+				} else
+					anyChanceOfUnsatisfiability = true;
 			}
 
 			includeLostSignature();
-			
+
 			Logger_MORe.logInfo(ontology.getLogicalAxiomCount() + " axioms in working ontology");
-			
+
 		} catch (OWLOntologyCreationException e) {
 			e.printStackTrace();
 		}
 	}
-
 
 	/**
 	 * If ontology is reloaded then we should clear current status. e.g. unload
@@ -208,12 +209,14 @@ public class MOReReasoner implements OWLReasoner {
 		unloadModules();
 		lSignatureManager.clear();
 	}
+
 	protected void unloadWorkingOntology() {
 		if (manager.contains(IRI.create(iri_str_working_ontology))) {
 			manager.removeOntology(ontology);
 			this.ontology = null;
 		}
 	}
+
 	protected void unloadModules() {
 		if (manager.contains(IRI.create(iri_compmodule_ontology))) {
 			manager.removeOntology(compmodule_onto);
@@ -224,9 +227,10 @@ public class MOReReasoner implements OWLReasoner {
 			lmodule_onto = null;
 		}
 	}
+
 	/**
-	 * When filtering ontology some signature entities may be lost if they are
-	 * not referenced in any Tbox or RBox axiom
+	 * When filtering ontology some signature entities may be lost if they are not
+	 * referenced in any Tbox or RBox axiom
 	 */
 	protected void includeLostSignature() {
 		// Lost entities which were not appearing neither in RBox nor Tbox axioms
@@ -237,8 +241,7 @@ public class MOReReasoner implements OWLReasoner {
 		for (OWLClass cls : signatureLost) {
 			newSubTopAxioms.add(
 					manager.getOWLDataFactory().getOWLSubClassOfAxiom(cls, manager.getOWLDataFactory().getOWLThing()));
-			newSubTopAxioms.add(
-					manager.getOWLDataFactory().getOWLDeclarationAxiom(cls));
+			newSubTopAxioms.add(manager.getOWLDataFactory().getOWLDeclarationAxiom(cls));
 		}
 
 		manager.addAxioms(ontology, newSubTopAxioms);
@@ -246,7 +249,6 @@ public class MOReReasoner implements OWLReasoner {
 		signatureLost.clear();
 		newSubTopAxioms.clear();
 	}
-
 
 	public void classifyClasses() {
 
@@ -261,35 +263,35 @@ public class MOReReasoner implements OWLReasoner {
 				Timer t = new Timer();
 				lSignatureManager.findLsignature(ontology, lightweightFragment, stats);
 				stats.updateLsignatureTime(t.duration());
-				
-				
-				//if the lSignature is not empty, then we first classify with ELK
-				//if the ontology contains anything at all that could lead to contradiction
-				//if it doesn't then there is no need chance of extending the lSignature even further; furthermore, if this is the case 
-				//and the lSignature is empty then we won't need ELK at all and it would be a waste of time - even if it's just a few seconds
-				
-				//if there are potentially any unsatisfiable classes, we want to try and identify them with ELK so we can get them out of the way
-				//also, if the compSignature is empty then we only need to use ELK for the whole ontology
-				if (anyChanceOfUnsatisfiability || lSignatureManager.getCompSignatureClasses().isEmpty()){
+
+				// if the lSignature is not empty, then we first classify with ELK
+				// if the ontology contains anything at all that could lead to contradiction
+				// if it doesn't then there is no need chance of extending the lSignature even
+				// further; furthermore, if this is the case
+				// and the lSignature is empty then we won't need ELK at all and it would be a
+				// waste of time - even if it's just a few seconds
+
+				// if there are potentially any unsatisfiable classes, we want to try and
+				// identify them with ELK so we can get them out of the way
+				// also, if the compSignature is empty then we only need to use ELK for the
+				// whole ontology
+				if (anyChanceOfUnsatisfiability || lSignatureManager.getCompSignatureClasses().isEmpty()) {
 					classifyWithLreasoner(true);
 					if (anyChanceOfUnsatisfiability && !lSignatureManager.getCompSignatureClasses().isEmpty())
 						lSignatureManager.updateLsignatureWithUnsatClasses(lReasoner);
-				}
-				else if (!lSignatureManager.getLsignatureClasses().isEmpty())
+				} else if (!lSignatureManager.getLsignatureClasses().isEmpty())
 					classifyWithLreasoner(false);
-				
 
 				if (lSignatureManager.getCompSignatureClasses().isEmpty())
 					status = ClassificationStatus.CLASSIFIED_BY_ELK;
-				else{
-					try{
+				else {
+					try {
 						extractComplementModule();
 						if (configuration.useRDFox)
 							processWithRDFoxAndOWL2Reasoner();
 						else
 							processWithOWL2Reasoner(compmodule_onto, false);
-					}
-					catch (OWLOntologyCreationException e){
+					} catch (OWLOntologyCreationException e) {
 						e.printStackTrace();
 					}
 				}
@@ -301,28 +303,25 @@ public class MOReReasoner implements OWLReasoner {
 				if (isMonitorUp) {
 					configuration.getProgressMonitor().reasonerTaskStopped();
 				}
-				
+
 				stats.printStats();
 			}
 		}
 	}
 
-
 	protected void processWithRDFoxAndOWL2Reasoner() {
 
 		stats.updateNaxiomsForPAGOdA(compmodule_onto.getAxiomCount());
 		Timer t = new Timer();
-		pagoda = new PAGOdAClassificationManager(
-				compmodule_onto, 
-				lSignatureManager.getCompSignatureClasses(), 
+		pagoda = new PAGOdAClassificationManager(compmodule_onto, lSignatureManager.getCompSignatureClasses(),
 				configuration.useMultiStageMaterialisation);
-		OWLOntology axiomsToFinish = pagoda.classify();		
+		OWLOntology axiomsToFinish = pagoda.classify();
 		stats.updatePAGOdAtime(t.duration());
 		stats.updatePairsDecidedByHermiT(pagoda.getNundecidedSubsumptionPairs());
-		
+
 		if (axiomsToFinish != null)
 			processWithOWL2Reasoner(axiomsToFinish, true);
-		else{
+		else {
 			if (lSignatureManager.getLsignatureClasses().isEmpty())
 				status = ClassificationStatus.CLASSIFIED_BY_PAGODA;
 			else
@@ -332,41 +331,39 @@ public class MOReReasoner implements OWLReasoner {
 	}
 
 	protected void processWithOWL2Reasoner(OWLOntology axiomsForOWL2Reasoner, boolean afterUsingPAGOdA) {
-		if (configuration.saveOntologyForOWL2Reasoner){
-			
+		if (configuration.saveOntologyForOWL2Reasoner) {
+
 			stats.updateHermiTtime(-1);
 			stats.updateNaxiomsForHermiT(axiomsForOWL2Reasoner.getAxiomCount());
-			
+
 			String originalDocumentIRI = manager.getOntologyDocumentIRI(root_ontology).toString();
-			if (!originalDocumentIRI.startsWith("file:")) 
-				originalDocumentIRI = "file:"+ Utility_PAGOdA.TempDirectory + "ontology";
-			String documentIRI = ""; 
+			if (!originalDocumentIRI.startsWith("file:"))
+				originalDocumentIRI = "file:" + Utility_PAGOdA.TempDirectory + "ontology";
+			String documentIRI = "";
 			if (originalDocumentIRI.lastIndexOf(".") > -1)
 				documentIRI = originalDocumentIRI.substring(0, originalDocumentIRI.lastIndexOf("."));
 			else
 				documentIRI = originalDocumentIRI;
 			documentIRI += "_moduleForOWL2Reasoner";
 			if (configuration.suffixForSavedOntology != null)
-				documentIRI += "_"+configuration.suffixForSavedOntology;
+				documentIRI += "_" + configuration.suffixForSavedOntology;
 			documentIRI += ".owl";
 			Utility.saveOntology(manager, axiomsForOWL2Reasoner, documentIRI);
 			status = ClassificationStatus.UNFINISHED_CLASSIFICATION_TESTING;
-		}
-		else{
+		} else {
 			stats.updateNaxiomsForHermiT(axiomsForOWL2Reasoner.getAxiomCount());
 			Timer t = new Timer();
 			owl2reasoner = owl2reasonerManager.getOWL2ReasonerInstance(axiomsForOWL2Reasoner);
 			owl2reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 			stats.updateHermiTtime(t.duration());
-			if (lSignatureManager.getLsignatureClasses().isEmpty()){
+			if (lSignatureManager.getLsignatureClasses().isEmpty()) {
 				if (afterUsingPAGOdA)
 					status = ClassificationStatus.CLASSIFIED_BY_PAGODA_AND_HERMIT;
-				else{
+				else {
 					status = ClassificationStatus.CLASSIFIED_BY_HERMIT;
 					stats.updatePairsDecidedPAGOdAstyle(0);
 				}
-			}
-			else{
+			} else {
 				if (afterUsingPAGOdA)
 					status = ClassificationStatus.CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT;
 				else {
@@ -382,20 +379,17 @@ public class MOReReasoner implements OWLReasoner {
 		Logger.getLogger("org.semanticweb.elk").setLevel(Level.OFF);
 		if (wholeOntology)
 			lReasoner = new ElkReasonerFactory().createReasoner(ontology);
-		else{
-			try{
+		else {
+			try {
 				extractLmodule();
 				lReasoner = new ElkReasonerFactory().createReasoner(lmodule_onto);
-			}
-			catch (OWLOntologyCreationException e){
+			} catch (OWLOntologyCreationException e) {
 				lReasoner = new ElkReasonerFactory().createReasoner(ontology);
 			}
 		}
 		lReasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
 		stats.updateELKtime(t.duration());
 	}
-
-	
 
 	protected int nELaxioms() {
 		int n = 0;
@@ -447,7 +441,7 @@ public class MOReReasoner implements OWLReasoner {
 			InferredOntologyGenerator iog = null;
 
 			iog = new InferredOntologyGenerator(r, gens);
-			iog.fillOntology(manager, inferredOntology);
+			iog.fillOntology(manager.getOWLDataFactory(), inferredOntology);
 
 			t = System.currentTimeMillis() - t;
 			Logger_MORe.logDebug(t + "ms for the hierarchy rewriting");
@@ -462,11 +456,11 @@ public class MOReReasoner implements OWLReasoner {
 	}
 
 	protected void extractComplementModule() throws OWLOntologyCreationException {
-		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(
-				manager, ontology, ModuleType.BOT);
+		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(manager, ontology,
+				ModuleType.BOT);
 
-		Set<OWLAxiom> compModule = botModExtractor.extract(
-				new HashSet<OWLEntity>(lSignatureManager.getCompSignatureClasses()));
+		Set<OWLAxiom> compModule = botModExtractor
+				.extract(new HashSet<OWLEntity>(lSignatureManager.getCompSignatureClasses()));
 		compmodule_onto = manager.createOntology(compModule, IRI.create(iri_compmodule_ontology));
 
 		Logger_MORe.logInfo(compmodule_onto.getAxiomCount() + " axioms in comp module");
@@ -474,27 +468,25 @@ public class MOReReasoner implements OWLReasoner {
 	}
 
 	protected void extractLmodule() throws OWLOntologyCreationException {
-		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(manager, ontology, ModuleType.BOT);
-		Set<OWLAxiom> lModule = botModExtractor.extract(
-				new HashSet<OWLEntity>(lSignatureManager.getLsignatureClasses()));
+		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(manager, ontology,
+				ModuleType.BOT);
+		Set<OWLAxiom> lModule = botModExtractor
+				.extract(new HashSet<OWLEntity>(lSignatureManager.getLsignatureClasses()));
 		lmodule_onto = manager.createOntology(lModule, IRI.create(iri_lmodule_ontology));
 		Logger_MORe.logDebug(lmodule_onto.getAxiomCount() + " axioms in l-module");
 	}
 
-	
 	private boolean checkSatisfiability(OWLClass c) {
-		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(
-				manager, ontology, ModuleType.BOT);
+		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(manager, ontology,
+				ModuleType.BOT);
 		Set<OWLEntity> signature = new HashSet<OWLEntity>();
 		signature.add(c);
 
 		boolean isSat = true;
 
 		try {
-			MOReReasoner auxMORe = new MOReReasoner(
-					botModExtractor.extractAsOntology(
-							signature,
-							IRI.create("http://org.semanticweb.more.orechallenge/moduleForSatisfiability")));
+			MOReReasoner auxMORe = new MOReReasoner(botModExtractor.extractAsOntology(signature,
+					IRI.create("http://org.semanticweb.more.orechallenge/moduleForSatisfiability")));
 
 			isSat = !auxMORe.getUnsatisfiableClasses().contains(c);
 
@@ -507,21 +499,20 @@ public class MOReReasoner implements OWLReasoner {
 	}
 
 	/**
-	 * Uses a module with OWL 2 Reasoner to check if a class expression "c" is satisfiable 
+	 * Uses a module with OWL 2 Reasoner to check if a class expression "c" is
+	 * satisfiable
 	 */
 	private boolean checkSatisfiability(OWLClassExpression c) {
-		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(
-				manager, ontology, ModuleType.BOT);
+		SyntacticLocalityModuleExtractor botModExtractor = new SyntacticLocalityModuleExtractor(manager, ontology,
+				ModuleType.BOT);
 		Set<OWLEntity> signature = new HashSet<OWLEntity>();
 		signature.addAll(c.getSignature());
 
 		boolean isSat = true;
 
 		try {
-			OWLReasoner auxOWLReasoner = owl2reasonerManager.getOWL2ReasonerInstance(
-					botModExtractor.extractAsOntology(
-							signature,
-							IRI.create("http://org.semanticweb.more.orechallenge/moduleForSatisfiability")));
+			OWLReasoner auxOWLReasoner = owl2reasonerManager.getOWL2ReasonerInstance(botModExtractor.extractAsOntology(
+					signature, IRI.create("http://org.semanticweb.more.orechallenge/moduleForSatisfiability")));
 
 			isSat = auxOWLReasoner.isSatisfiable(c);
 
@@ -537,7 +528,7 @@ public class MOReReasoner implements OWLReasoner {
 		if (lReasoner != null) {
 			lReasoner.dispose();
 		}
-		if (owl2reasoner != null){ 
+		if (owl2reasoner != null) {
 			owl2reasoner.dispose();
 		}
 	}
@@ -545,7 +536,6 @@ public class MOReReasoner implements OWLReasoner {
 	public Set<OWLClass> getLsignatureClasses() {
 		return lSignatureManager.getLsignatureClasses();
 	}
-
 
 	// methods inherited from the OWLReasoner interface
 	@Override
@@ -556,8 +546,7 @@ public class MOReReasoner implements OWLReasoner {
 	@Override
 	public void dispose() {
 		// remove ontology change listener
-		root_ontology.getOWLOntologyManager().removeOntologyChangeListener(
-				root_ontologyChangeListener);
+		root_ontology.getOWLOntologyManager().removeOntologyChangeListener(root_ontologyChangeListener);
 		// disposeUsedReasoners and others
 		clearStatus();
 
@@ -566,8 +555,7 @@ public class MOReReasoner implements OWLReasoner {
 	// Ontology change management methods
 	protected class OntologyChangeListener implements OWLOntologyChangeListener {
 		@Override
-		public void ontologiesChanged(List<? extends OWLOntologyChange> changes)
-				throws OWLException {
+		public void ontologiesChanged(List<? extends OWLOntologyChange> changes) throws OWLException {
 			for (OWLOntologyChange change : changes) {
 				if (!(change instanceof RemoveOntologyAnnotation || change instanceof AddOntologyAnnotation)) {
 					pendingChanges_root_ontology.add(change);
@@ -642,11 +630,10 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public Node<OWLClass> getBottomClassNode() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -654,11 +641,10 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public Node<OWLDataProperty> getBottomDataPropertyNode() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -666,100 +652,87 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public Node<OWLObjectPropertyExpression> getBottomObjectPropertyNode() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLClass> getDataPropertyDomains(OWLDataProperty arg0,
-			boolean arg1) throws InconsistentOntologyException,
-			FreshEntitiesException, ReasonerInterruptedException,
+	public NodeSet<OWLClass> getDataPropertyDomains(OWLDataProperty arg0, boolean arg1)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
 			TimeOutException {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return null; 
+		return null;
 	}
 
 	@Override
-	public Set<OWLLiteral> getDataPropertyValues(OWLNamedIndividual arg0,
-			OWLDataProperty arg1) throws InconsistentOntologyException,
-			FreshEntitiesException, ReasonerInterruptedException,
+	public Set<OWLLiteral> getDataPropertyValues(OWLNamedIndividual arg0, OWLDataProperty arg1)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
 			TimeOutException {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLNamedIndividual> getDifferentIndividuals(
-			OWLNamedIndividual arg0) throws InconsistentOntologyException,
-			FreshEntitiesException, ReasonerInterruptedException,
+	public NodeSet<OWLNamedIndividual> getDifferentIndividuals(OWLNamedIndividual arg0)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
 			TimeOutException {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLClass> getDisjointClasses(OWLClassExpression ce)
-			throws ReasonerInterruptedException, TimeOutException,
-			FreshEntitiesException, InconsistentOntologyException {
-		//TODO
-		try{
+	public NodeSet<OWLClass> getDisjointClasses(OWLClassExpression ce) throws ReasonerInterruptedException,
+			TimeOutException, FreshEntitiesException, InconsistentOntologyException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLDataProperty> getDisjointDataProperties(
-			OWLDataPropertyExpression arg0)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLDataProperty> getDisjointDataProperties(OWLDataPropertyExpression arg0)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLObjectPropertyExpression> getDisjointObjectProperties(
-			OWLObjectPropertyExpression arg0)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLObjectPropertyExpression> getDisjointObjectProperties(OWLObjectPropertyExpression arg0)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -767,53 +740,49 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public Node<OWLClass> getEquivalentClasses(OWLClassExpression arg0)
-			throws InconsistentOntologyException,
-			ClassExpressionNotInProfileException, FreshEntitiesException,
+			throws InconsistentOntologyException, ClassExpressionNotInProfileException, FreshEntitiesException,
 			ReasonerInterruptedException, TimeOutException {
-		//		classifyClasses();
-		//		switch (classified) {
-		//		case classifiedWithElk:
-		//			return lReasoner.getEquivalentClasses(arg0);
-		//		case classifiedWithOWL2Reasoner:
-		//			return owl2reasoner.getEquivalentClasses(arg0);
-		//		default:
-		//			LogOutput.printAlways("Classification not computed yet: getEquivalentClasses");
-		//			//return null;
-		//			return new OWLClassNode();
-		//		}
+		// classifyClasses();
+		// switch (classified) {
+		// case classifiedWithElk:
+		// return lReasoner.getEquivalentClasses(arg0);
+		// case classifiedWithOWL2Reasoner:
+		// return owl2reasoner.getEquivalentClasses(arg0);
+		// default:
+		// LogOutput.printAlways("Classification not computed yet:
+		// getEquivalentClasses");
+		// //return null;
+		// return new OWLClassNode();
+		// }
 		//
-		//		// if (lSignature.contains(arg0))
-		//		// return elk.getEquivalentClasses(arg0);
-		//		// else
-		//		// return hermiT.getEquivalentClasses(arg0);
-		//TODO redo for new framework
+		// // if (lSignature.contains(arg0))
+		// // return elk.getEquivalentClasses(arg0);
+		// // else
+		// // return hermiT.getEquivalentClasses(arg0);
+		// TODO redo for new framework
 		return null;
 	}
 
 	@Override
-	public Node<OWLDataProperty> getEquivalentDataProperties(
-			OWLDataProperty arg0) throws InconsistentOntologyException,
-			FreshEntitiesException, ReasonerInterruptedException {
-		//TODO
-		try{
+	public Node<OWLDataProperty> getEquivalentDataProperties(OWLDataProperty arg0)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public Node<OWLObjectPropertyExpression> getEquivalentObjectProperties(
-			OWLObjectPropertyExpression arg0)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public Node<OWLObjectPropertyExpression> getEquivalentObjectProperties(OWLObjectPropertyExpression arg0)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -821,11 +790,10 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public FreshEntityPolicy getFreshEntityPolicy() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -833,86 +801,75 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public IndividualNodeSetPolicy getIndividualNodeSetPolicy() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLNamedIndividual> getInstances(OWLClassExpression arg0,
-			boolean arg1) throws InconsistentOntologyException,
-			ClassExpressionNotInProfileException, FreshEntitiesException,
+	public NodeSet<OWLNamedIndividual> getInstances(OWLClassExpression arg0, boolean arg1)
+			throws InconsistentOntologyException, ClassExpressionNotInProfileException, FreshEntitiesException,
 			ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public Node<OWLObjectPropertyExpression> getInverseObjectProperties(
-			OWLObjectPropertyExpression arg0)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public Node<OWLObjectPropertyExpression> getInverseObjectProperties(OWLObjectPropertyExpression arg0)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLClass> getObjectPropertyDomains(
-			OWLObjectPropertyExpression arg0, boolean arg1)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLClass> getObjectPropertyDomains(OWLObjectPropertyExpression arg0, boolean arg1)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLClass> getObjectPropertyRanges(
-			OWLObjectPropertyExpression arg0, boolean arg1)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLClass> getObjectPropertyRanges(OWLObjectPropertyExpression arg0, boolean arg1)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLNamedIndividual> getObjectPropertyValues(
-			OWLNamedIndividual arg0, OWLObjectPropertyExpression arg1)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLNamedIndividual> getObjectPropertyValues(OWLNamedIndividual arg0,
+			OWLObjectPropertyExpression arg1) throws InconsistentOntologyException, FreshEntitiesException,
+			ReasonerInterruptedException, TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -935,9 +892,8 @@ public class MOReReasoner implements OWLReasoner {
 		return ontology;
 	}
 
-	
-	public Set<OWLClass> getAllSuperClasses(OWLClass c) throws InconsistentOntologyException,
-			ClassExpressionNotInProfileException, FreshEntitiesException,
+	public Set<OWLClass> getAllSuperClasses(OWLClass c)
+			throws InconsistentOntologyException, ClassExpressionNotInProfileException, FreshEntitiesException,
 			ReasonerInterruptedException, TimeOutException {
 		classifyClasses();
 		Set<OWLClass> ret;
@@ -949,68 +905,65 @@ public class MOReReasoner implements OWLReasoner {
 		case CLASSIFIED_BY_HERMIT:
 			ret = owl2reasoner.getSuperClasses(c, false).getFlattened();
 			ret.addAll(owl2reasoner.getEquivalentClasses(c).getEntitiesMinus(c));
-			return ret; 
+			return ret;
 		case CLASSIFIED_BY_PAGODA:
 			ret = pagoda.getAllSuperClasses(c);
-			if (ret.size() == 1 && ret.iterator().next().isOWLNothing()){
+			if (ret.size() == 1 && ret.iterator().next().isOWLNothing()) {
 				ret.iterator().remove();
 				ret.addAll(ontology.getClassesInSignature(true));
 			}
 			return ret;
 		case CLASSIFIED_BY_ELK_AND_PAGODA:
-			if (lSignatureManager.getLsignatureClasses().contains(c)){
+			if (lSignatureManager.getLsignatureClasses().contains(c)) {
 				if (lReasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
-				else{
+				else {
 					ret = lReasoner.getSuperClasses(c, false).getFlattened();
 					ret.addAll(lReasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 				}
 				return ret;
-			}
-			else{
+			} else {
 				ret = pagoda.getAllSuperClasses(c);
-				if (ret.size() == 1 && ret.iterator().next().isOWLNothing()){
+				if (ret.size() == 1 && ret.iterator().next().isOWLNothing()) {
 					ret.iterator().remove();
 					ret.addAll(ontology.getClassesInSignature(true));
 				}
 				return ret;
 			}
 		case CLASSIFIED_BY_ELK_AND_HERMIT:
-			if (lSignatureManager.getLsignatureClasses().contains(c)){
+			if (lSignatureManager.getLsignatureClasses().contains(c)) {
 				if (lReasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
-				else{
+				else {
 					ret = lReasoner.getSuperClasses(c, false).getFlattened();
 					ret.addAll(lReasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 				}
 				return ret;
-			}
-			else{
+			} else {
 				if (owl2reasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
-				else{
+				else {
 					ret = owl2reasoner.getSuperClasses(c, false).getFlattened();
 					ret.addAll(owl2reasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 				}
 				return ret;
 			}
 		case CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT:
-			if (lSignatureManager.getLsignatureClasses().contains(c)){
+			if (lSignatureManager.getLsignatureClasses().contains(c)) {
 				if (lReasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
-				else{
+				else {
 					ret = lReasoner.getSuperClasses(c, false).getFlattened();
 					ret.addAll(lReasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 				}
 				return ret;
-			}
-			else{
+			} else {
 				ret = pagoda.getAllSuperClasses(c);
-				if (ret.size() == 1 && ret.iterator().next().isOWLNothing()){
+				if (ret.size() == 1 && ret.iterator().next().isOWLNothing()) {
 					ret.iterator().remove();
 					ret.addAll(ontology.getClassesInSignature(true));
 				}
-				if (!pagoda.fullyClassifies(c)){
+				if (!pagoda.fullyClassifies(c)) {
 					ret.addAll(owl2reasoner.getSuperClasses(c, false).getFlattened());
 					ret.addAll(owl2reasoner.getEquivalentClasses(c).getEntitiesMinus(c));
 				}
@@ -1018,14 +971,14 @@ public class MOReReasoner implements OWLReasoner {
 			}
 		case CLASSIFIED_BY_PAGODA_AND_HERMIT:
 			ret = pagoda.getAllSuperClasses(c);
-			if (ret.size() == 1 && ret.iterator().next().isOWLNothing()){
+			if (ret.size() == 1 && ret.iterator().next().isOWLNothing()) {
 				ret.iterator().remove();
 				ret.addAll(ontology.getClassesInSignature(true));
 			}
-			if (!pagoda.fullyClassifies(c)){
+			if (!pagoda.fullyClassifies(c)) {
 				if (owl2reasoner.getUnsatisfiableClasses().contains(c))
 					ret = ontology.getClassesInSignature(true);
-				else{
+				else {
 					ret.addAll(owl2reasoner.getSuperClasses(c, false).getFlattened());
 					ret.addAll(owl2reasoner.getEquivalentClasses(c).getEntities());
 				}
@@ -1036,11 +989,9 @@ public class MOReReasoner implements OWLReasoner {
 			return new HashSet<OWLClass>();
 		}
 	}
-	
 
 	public Set<OWLClass> getAllUnsatisfiableClasses()
-			throws ReasonerInterruptedException, TimeOutException,
-			InconsistentOntologyException {
+			throws ReasonerInterruptedException, TimeOutException, InconsistentOntologyException {
 		classifyClasses();
 		Set<OWLClass> ret;
 		switch (status) {
@@ -1072,50 +1023,147 @@ public class MOReReasoner implements OWLReasoner {
 			return new HashSet<OWLClass>();
 		}
 	}
-	
+
+/*
 	@Override
-	public NodeSet<OWLClass> getSuperClasses(OWLClassExpression arg0,
-			boolean direct) throws InconsistentOntologyException,
-			ClassExpressionNotInProfileException, FreshEntitiesException,
+	public NodeSet<OWLClass> getSuperClasses(OWLClassExpression arg0, boolean direct)
+			throws InconsistentOntologyException, ClassExpressionNotInProfileException, FreshEntitiesException,
 			ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported: use method getAllSuperClasses(OWLClass c) instead");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
+*/
 
+	@Override
+	public NodeSet<OWLClass> getSuperClasses(OWLClassExpression arg0, boolean direct)
+			throws InconsistentOntologyException, ClassExpressionNotInProfileException, FreshEntitiesException,
+			ReasonerInterruptedException, TimeOutException {
+		classifyClasses();
+		OWLClassNodeSet ret = new OWLClassNodeSet();
+		
+		switch (status) {
+		case CLASSIFIED_BY_ELK:
+			ret = (OWLClassNodeSet) lReasoner.getSuperClasses(arg0, false);
+			//ret.addSameEntities(lReasoner.getEquivalentClasses(arg0).getEntitiesMinus((OWLClass) arg0));
+			return ret;
+		case CLASSIFIED_BY_HERMIT:
+			ret = (OWLClassNodeSet) owl2reasoner.getSuperClasses(arg0, false);
+			//ret.addAll(owl2reasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+			return ret;
+		case CLASSIFIED_BY_PAGODA:
+			ret.addSameEntities(pagoda.getAllSuperClasses(arg0.asOWLClass()));
+			if (ret.getNodes().size() == 1 && ((OWLClassExpression) ret.iterator().next()).isOWLNothing()) {
+				ret.iterator().remove();
+				ret.addSameEntities(ontology.getClassesInSignature(true));
+			}
+			return ret;
+		case CLASSIFIED_BY_ELK_AND_PAGODA:
+			if (lSignatureManager.getLsignatureClasses().contains(arg0)) {
+				if (lReasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret = (OWLClassNodeSet) lReasoner.getSuperClasses(arg0, false);
+					//ret.addAll(lReasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			} else {
+				ret.addSameEntities(pagoda.getAllSuperClasses(arg0.asOWLClass()));
+				if (ret.getNodes().size() == 1 && ((OWLClassExpression) ret.iterator().next()).isOWLNothing()) {
+					ret.iterator().remove();
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				}
+				return ret;
+			}
+		case CLASSIFIED_BY_ELK_AND_HERMIT:
+			if (lSignatureManager.getLsignatureClasses().contains(arg0)) {
+				if (lReasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret = (OWLClassNodeSet) lReasoner.getSuperClasses(arg0, false);
+					//ret.addAll(lReasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			} else {
+				if (owl2reasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret = (OWLClassNodeSet) owl2reasoner.getSuperClasses(arg0, false);
+					//ret.addAll(owl2reasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			}
+		case CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT:
+			if (lSignatureManager.getLsignatureClasses().contains(arg0.asOWLClass())) {
+				if (lReasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret = (OWLClassNodeSet) lReasoner.getSuperClasses(arg0, false);
+					//ret.addAll(lReasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			} else {
+				ret.addSameEntities(pagoda.getAllSuperClasses(arg0.asOWLClass()));
+				if (ret.getNodes().size() == 1 && ((OWLClassExpression) ret.iterator().next()).isOWLNothing()) {
+					ret.iterator().remove();
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				}
+				if (!pagoda.fullyClassifies(arg0.asOWLClass())) {
+					ret.addSameEntities(owl2reasoner.getSuperClasses(arg0, false).getFlattened());
+					//ret.addAll(owl2reasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			}
+		case CLASSIFIED_BY_PAGODA_AND_HERMIT:
+			ret.addSameEntities(pagoda.getAllSuperClasses(arg0.asOWLClass()));
+			if (ret.getNodes().size() == 1 && ((OWLClassExpression) ret.iterator().next()).isOWLNothing()) {
+				ret.iterator().remove();
+				ret.addSameEntities(ontology.getClassesInSignature(true));
+			}
+			if (!pagoda.fullyClassifies(arg0.asOWLClass())) {
+				if (owl2reasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret.addSameEntities(owl2reasoner.getSuperClasses(arg0, false).getFlattened());
+					//ret.addAll(owl2reasoner.getEquivalentClasses(arg0).getEntities());
+				}
+			}
+			return ret;
+		default:
+			Logger_MORe.logInfo("Classification not computed");
+			return new OWLClassNodeSet();
+		}
+	}
+	
 	@Override
 	public Node<OWLClass> getUnsatisfiableClasses()
-			throws ReasonerInterruptedException, TimeOutException,
-			InconsistentOntologyException {
-		//TODO
-		try{
+			throws ReasonerInterruptedException, TimeOutException, InconsistentOntologyException {
+		// TODO
+		try {
 			throw new Exception("not supported: use method getAllUnsatisfiableClasses() instead");
-		}
-		catch (Exception e){
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	@Override
-	public Node<OWLNamedIndividual> getSameIndividuals(OWLNamedIndividual arg0)
-			throws InconsistentOntologyException, FreshEntitiesException,
-			ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
-			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
+	@Override
+	public Node<OWLNamedIndividual> getSameIndividuals(OWLNamedIndividual arg0) throws InconsistentOntologyException,
+			FreshEntitiesException, ReasonerInterruptedException, TimeOutException {
+		// TODO
+		try {
+			throw new Exception("not supported");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	/*
 	@Override
 	public NodeSet<OWLClass> getSubClasses(OWLClassExpression arg0, boolean direct)
 			throws ReasonerInterruptedException, TimeOutException,
@@ -1130,62 +1178,127 @@ public class MOReReasoner implements OWLReasoner {
 		}
 		return null;
 	}
+	 */
 
 	@Override
-	public NodeSet<OWLDataProperty> getSubDataProperties(OWLDataProperty direct,
-			boolean arg1) throws InconsistentOntologyException,
-			FreshEntitiesException, ReasonerInterruptedException,
+	public NodeSet<OWLClass> getSubClasses(OWLClassExpression arg0, boolean direct)
+			throws ReasonerInterruptedException, TimeOutException, FreshEntitiesException,
+			InconsistentOntologyException, ClassExpressionNotInProfileException {
+		classifyClasses();
+		OWLClassNodeSet ret = new OWLClassNodeSet();
+		
+		switch (status) {
+		case CLASSIFIED_BY_ELK:
+			ret = (OWLClassNodeSet) lReasoner.getSubClasses(arg0, false);
+			//ret.addSameEntities(lReasoner.getEquivalentClasses(arg0).getEntitiesMinus((OWLClass) arg0));
+			return ret;
+		case CLASSIFIED_BY_HERMIT:
+			ret = (OWLClassNodeSet) owl2reasoner.getSubClasses(arg0, false);
+			//ret.addAll(owl2reasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+			return ret;
+		case CLASSIFIED_BY_PAGODA:
+			try{
+				throw new Exception("not supported");
+			}
+			catch (Exception e){
+				e.printStackTrace();
+			}
+			return null;
+		case CLASSIFIED_BY_ELK_AND_PAGODA:
+			try{
+				throw new Exception("not supported");
+			}
+			catch (Exception e){
+				e.printStackTrace();
+			}
+			return null;
+		case CLASSIFIED_BY_ELK_AND_HERMIT:
+			if (lSignatureManager.getLsignatureClasses().contains(arg0)) {
+				if (lReasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret = (OWLClassNodeSet) lReasoner.getSubClasses(arg0, false);
+					//ret.addAll(lReasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			} else {
+				if (owl2reasoner.getUnsatisfiableClasses().contains(arg0.asOWLClass()))
+					ret.addSameEntities(ontology.getClassesInSignature(true));
+				else {
+					ret = (OWLClassNodeSet) owl2reasoner.getSubClasses(arg0, false);
+					//ret.addAll(owl2reasoner.getEquivalentClasses(arg0).getEntitiesMinus(arg0));
+				}
+				return ret;
+			}
+		case CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT:
+			try{
+				throw new Exception("not supported");
+			}
+			catch (Exception e){
+				e.printStackTrace();
+			}
+			return null;
+		case CLASSIFIED_BY_PAGODA_AND_HERMIT:
+			try{
+				throw new Exception("not supported");
+			}
+			catch (Exception e){
+				e.printStackTrace();
+			}
+			return null;
+		default:
+			Logger_MORe.logInfo("Classification not computed");
+			return new OWLClassNodeSet();
+		}
+	}
+
+	@Override
+	public NodeSet<OWLDataProperty> getSubDataProperties(OWLDataProperty direct, boolean arg1)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
 			TimeOutException {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLObjectPropertyExpression> getSubObjectProperties(
-			OWLObjectPropertyExpression arg0, boolean direct)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLObjectPropertyExpression> getSubObjectProperties(OWLObjectPropertyExpression arg0, boolean direct)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLDataProperty> getSuperDataProperties(
-			OWLDataProperty arg0, boolean direct)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLDataProperty> getSuperDataProperties(OWLDataProperty arg0, boolean direct)
+			throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLObjectPropertyExpression> getSuperObjectProperties(
-			OWLObjectPropertyExpression arg0, boolean direct)
-					throws InconsistentOntologyException, FreshEntitiesException,
-					ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLObjectPropertyExpression> getSuperObjectProperties(OWLObjectPropertyExpression arg0,
+			boolean direct) throws InconsistentOntologyException, FreshEntitiesException, ReasonerInterruptedException,
+			TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -1198,23 +1311,21 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public Node<OWLClass> getTopClassNode() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public Node<OWLDataProperty> getTopDataPropertyNode() {		
-		//TODO
-		try{
+	public Node<OWLDataProperty> getTopDataPropertyNode() {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -1222,25 +1333,22 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public Node<OWLObjectPropertyExpression> getTopObjectPropertyNode() {
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
 
 	@Override
-	public NodeSet<OWLClass> getTypes(OWLNamedIndividual arg0, boolean arg1)
-			throws InconsistentOntologyException, FreshEntitiesException,
-			ReasonerInterruptedException, TimeOutException {
-		//TODO
-		try{
+	public NodeSet<OWLClass> getTypes(OWLNamedIndividual arg0, boolean arg1) throws InconsistentOntologyException,
+			FreshEntitiesException, ReasonerInterruptedException, TimeOutException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return null;
@@ -1250,31 +1358,69 @@ public class MOReReasoner implements OWLReasoner {
 	public void interrupt() {
 	}
 
-	@Override
-	public boolean isConsistent() throws ReasonerInterruptedException,
-	TimeOutException {
-		//TODO
-		try{
-			throw new Exception("not supported");
+	/*
+	 * @Override public boolean isConsistent() throws ReasonerInterruptedException,
+	 * TimeOutException { //TODO try{ throw new Exception("not supported"); } catch
+	 * (Exception e){ e.printStackTrace(); } return false; }
+	 */
+
+	public boolean isConsistent() throws ReasonerInterruptedException, TimeOutException {
+		classifyClasses();
+		switch (status) {
+		case NOT_CLASSIFIED:
+			Logger_MORe.logInfo("Classification not computed yet: isConsistent");
+			return true;
+		case CLASSIFIED_BY_ELK:
+			return lReasoner.isConsistent();
+		case CLASSIFIED_BY_ELK_AND_PAGODA:
+			if (lReasoner.isConsistent()) {
+				Logger_MORe.logInfo("Ontology presumably is inconsistent (unable to deterimine with PAGOdA.)");
+				return true;
+			} else {
+				Logger_MORe.logInfo("Ontology is inconsistent!");
+				return false;
+			}
+		case CLASSIFIED_BY_ELK_AND_HERMIT:
+			return lReasoner.isConsistent() && owl2reasoner.isConsistent();
+		case CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT:
+			if (lReasoner.isConsistent() && owl2reasoner.isConsistent()) {
+				Logger_MORe.logInfo("Ontology presumably is consistent - unable to deterimine PAGOdA component.");
+				return true;
+			} else {
+				Logger_MORe.logInfo("Ontology is inconsistent!");
+				return false;
+			}
+		case CLASSIFIED_BY_PAGODA_AND_HERMIT:
+			if (owl2reasoner.isConsistent()) {
+				Logger_MORe.logInfo("Ontology presumably is consistent - unable to deterimine PAGOdA component.");
+				return true;
+			} else {
+				Logger_MORe.logInfo("Ontology is inconsistent!");
+				return false;
+			}
+		case CLASSIFIED_BY_HERMIT:
+			return owl2reasoner.isConsistent();
+		// Logger_MORe.logInfo("HermiT: " + hermiT);
+		case CLASSIFIED_BY_PAGODA:
+			Logger_MORe.logInfo("Ontology presumably is consistent - unable to deterimine with PAGOdA.");
+			return true;
+		case UNFINISHED_CLASSIFICATION_TESTING:
+			Logger_MORe.logInfo("Classification unfinished - unknown if consistent!");
+			return true;
+		default:
+			Logger_MORe.logInfo("No classification status specified!");
+			return false;
 		}
-		catch (Exception e){
-			e.printStackTrace();
-		}
-		return false;
 	}
 
 	@Override
-	public boolean isEntailed(OWLAxiom arg0)
-			throws ReasonerInterruptedException,
-			UnsupportedEntailmentTypeException, TimeOutException,
-			AxiomNotInProfileException, FreshEntitiesException,
-			InconsistentOntologyException {
+	public boolean isEntailed(OWLAxiom arg0) throws ReasonerInterruptedException, UnsupportedEntailmentTypeException,
+			TimeOutException, AxiomNotInProfileException, FreshEntitiesException, InconsistentOntologyException {
 
-		//TODO
-		try{
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return false;
@@ -1282,15 +1428,12 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public boolean isEntailed(Set<? extends OWLAxiom> arg0)
-			throws ReasonerInterruptedException,
-			UnsupportedEntailmentTypeException, TimeOutException,
-			AxiomNotInProfileException, FreshEntitiesException,
-			InconsistentOntologyException {
-		//TODO
-		try{
+			throws ReasonerInterruptedException, UnsupportedEntailmentTypeException, TimeOutException,
+			AxiomNotInProfileException, FreshEntitiesException, InconsistentOntologyException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return false;
@@ -1308,70 +1451,57 @@ public class MOReReasoner implements OWLReasoner {
 
 	@Override
 	public boolean isPrecomputed(InferenceType arg0) {
-		if (arg0 == InferenceType.CLASS_HIERARCHY) 
-			if (status != ClassificationStatus.NOT_CLASSIFIED) 
+		if (arg0 == InferenceType.CLASS_HIERARCHY)
+			if (status != ClassificationStatus.NOT_CLASSIFIED)
 				return true;
 		return false;
 	}
 
 	@Override
-	public boolean isSatisfiable(OWLClassExpression arg0)
-			throws ReasonerInterruptedException, TimeOutException,
-			ClassExpressionNotInProfileException, FreshEntitiesException,
-			InconsistentOntologyException {
+	public boolean isSatisfiable(OWLClassExpression arg0) throws ReasonerInterruptedException, TimeOutException,
+			ClassExpressionNotInProfileException, FreshEntitiesException, InconsistentOntologyException {
 
 		if (arg0 instanceof OWLClass)
 			return getAllUnsatisfiableClasses().contains(arg0);
 		else
-			//TODO
-			try{
+			// TODO
+			try {
 				throw new Exception("only supported for atomic classes");
-			}
-			catch (Exception e){
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			return false;
+		return false;
 	}
 
 	@Override
 	public void precomputeInferences(InferenceType... inferenceTypes)
-			throws ReasonerInterruptedException, TimeOutException,
-			InconsistentOntologyException {
-		Set<InferenceType> requiredInferences = new HashSet<InferenceType>(
-				Arrays.asList(inferenceTypes));
+			throws ReasonerInterruptedException, TimeOutException, InconsistentOntologyException {
+		Set<InferenceType> requiredInferences = new HashSet<InferenceType>(Arrays.asList(inferenceTypes));
 		if (requiredInferences.contains(InferenceType.CLASS_HIERARCHY))
 			classifyClasses();
 		else
-			//TODO
-			try{
+			// TODO
+			try {
 				throw new Exception("precomputeInferences only supported for InferenceType.CLASS_HIERARCHY");
-			}
-			catch (Exception e){
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 	}
 
-	public void printHierarchy(File outputFile) throws FileNotFoundException,
-	OWLOntologyCreationException, OWLOntologyStorageException {
-		//TODO
-		try{
+	public void printHierarchy(File outputFile)
+			throws FileNotFoundException, OWLOntologyCreationException, OWLOntologyStorageException {
+		// TODO
+		try {
 			throw new Exception("not supported");
-		}
-		catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
 }
 
-enum ClassificationStatus{
-	NOT_CLASSIFIED,
-	CLASSIFIED_BY_ELK,
-	CLASSIFIED_BY_ELK_AND_PAGODA,
-	CLASSIFIED_BY_ELK_AND_HERMIT,
-	CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT,
-	CLASSIFIED_BY_PAGODA_AND_HERMIT,
-	CLASSIFIED_BY_HERMIT,
-	CLASSIFIED_BY_PAGODA,
+enum ClassificationStatus {
+	NOT_CLASSIFIED, CLASSIFIED_BY_ELK, CLASSIFIED_BY_ELK_AND_PAGODA, CLASSIFIED_BY_ELK_AND_HERMIT,
+	CLASSIFIED_BY_ELK_PAGODA_AND_HERMIT, CLASSIFIED_BY_PAGODA_AND_HERMIT, CLASSIFIED_BY_HERMIT, CLASSIFIED_BY_PAGODA,
 	UNFINISHED_CLASSIFICATION_TESTING
 }

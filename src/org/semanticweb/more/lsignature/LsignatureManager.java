@@ -71,8 +71,10 @@ public class LsignatureManager {
 
 		ForkJoinPool executor = new ForkJoinPool();
 		elkSignatureExtractorLauncher = new LsignatureExtractorLauncher(ontology, LogicFragment.ELK, false);
+		Logger_MORe.logInfo("launch extractor");
 		executor.execute(elkSignatureExtractorLauncher);
 
+		Logger_MORe.logInfo("manager: " + ret.toString());
 		if (ret != null){
 			//otherwise we have nowhere to return the axioms in the normalised ontologies necessary to really classify all the extra classses in the lSignature
 			if (rewriteInverses){

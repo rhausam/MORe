@@ -149,6 +149,7 @@ public class OWLNormalization4MORe extends OWLNormalization{
 				axiomsNormalizedO.addAll(objectPropertyManager.getTransitivityAxioms());
 
 			rearrangeClassExpressionInclusions();
+			
 		}
 		return axiomsNormalizedO;
 	}
